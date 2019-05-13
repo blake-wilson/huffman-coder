@@ -51,9 +51,9 @@ fn print_tree(root: &Node) -> String {
     res.to_string()
 }
 
-fn encode(root: &Node, st: &str, hm: &mut HashMap<char, String>) {
+fn encode(root: &Node, st: &str, hm: &mut HashMap<char, String>) -> HashMap<char, String> {
     if let Node::Nil = root {
-        return;
+        return HashMap::new();
     }
 
     match root {
@@ -66,29 +66,36 @@ fn encode(root: &Node, st: &str, hm: &mut HashMap<char, String>) {
             let mut s2 = String::from(st);
             s1.push_str("0");
             s2.push_str("1");
-            encode(&Box::new(left), &s1.to_string(), hm);
-            encode(&Box::new(right), &s2.to_string(), hm);
+            encode(left, &s1.to_string(), hm);
+            encode(right, &s2.to_string(), hm);
         }
     };
+    hm.clone()
 }
 
-fn decode(root: Node, idx: &mut u32, st: &str) {
+fn decode(root: &Node, idx: &mut i32, st: &str) {
     match root {
         Node::Nil => {}
         Node::Leaf(val, _) => {
             println!("{}", val);
         }
         Node::Tree(_, left, right) => {
-            let (l, r) = (*left, *right);
+            let (l, r) = (left, right);
             *idx += 1;
             let c = st.chars().nth(*idx as usize).unwrap();
             if c == '0' {
-                decode(l, idx, st);
+                decode(&l, idx, st);
             } else {
-                decode(r, idx, st);
+                decode(&r, idx, st);
             }
         }
     };
+}
+
+fn print_encoding_map(map: &mut HashMap<char, String>) {
+    for (c, code) in &*map {
+        println!("Huffman code is {}: {}", c, code);
+    }
 }
 
 fn build_huffman_tree(text: &str) {
@@ -120,23 +127,35 @@ fn build_huffman_tree(text: &str) {
     }
 
     let root = pq.peek().unwrap();
-    let encode_map = &mut HashMap::new();
-    encode(root, "", encode_map);
-    for (c, code) in encode_map {
-        println!("Huffman code is {}: {}", c, code);
+
+    let encoded_string = &mut String::from("");
+
+    let em = &mut HashMap::new();
+    let encode_map = encode(root, "", em);
+    //for (c, code) in encode_map {
+    //    println!("Huffman code is {}: {}", c, code);
+    //}
+    // print_encoding_map(encode_map);
+
+    for c in text.chars() {
+        encoded_string.push_str(encode_map.get(&c).unwrap());
+    }
+
+    let idx: &mut i32 = &mut (-1);
+    while *idx < (encoded_string.len() - 2) as i32 {
+        decode(root, idx, encoded_string);
     }
 }
 
 fn main() {
-    println!("Hello, world!");
-
     let sub_node = Node::Tree(2, Box::new(Node::Nil), Box::new(Node::Nil));
-    let root = Node::Tree(1, Box::new(sub_node), Box::new(Node::Leaf('a', 1)));
+    let root = &Node::Tree(1, Box::new(sub_node), Box::new(Node::Leaf('a', 1)));
     let hm = &mut HashMap::new();
 
-    encode(&root, "", hm);
+    encode(root, "", hm);
     let txt = print_tree(&root);
     println!("{}", txt);
     println!("{:?}", hm);
-    build_huffman_tree("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum");
+    // build_huffman_tree("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum");
+    build_huffman_tree("Huffman coding is a data compression algorithm.");
 }
