@@ -92,8 +92,8 @@ fn decode(root: &Node, idx: &mut i32, st: &str) {
     };
 }
 
-fn print_encoding_map(map: &mut HashMap<char, String>) {
-    for (c, code) in &*map {
+fn print_encoding_map(map: HashMap<char, String>) {
+    for (c, code) in map {
         println!("Huffman code is {}: {}", c, code);
     }
 }
@@ -132,10 +132,7 @@ fn build_huffman_tree(text: &str) {
 
     let em = &mut HashMap::new();
     let encode_map = encode(root, "", em);
-    //for (c, code) in encode_map {
-    //    println!("Huffman code is {}: {}", c, code);
-    //}
-    // print_encoding_map(encode_map);
+    print_encoding_map(encode_map.clone());
 
     for c in text.chars() {
         encoded_string.push_str(encode_map.get(&c).unwrap());
