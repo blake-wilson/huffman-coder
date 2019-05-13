@@ -29,15 +29,11 @@ impl PartialOrd for Node {
 
 static NIL: Node = Node::Nil;
 
-fn new_node(ch: char, freq: u32, left: Node, right: Node) -> Node {
-    Node::Tree(freq, Box::new(left), Box::new(right))
-}
-
 fn print_tree(root: &Node) -> String {
     let res = &mut String::from("");
     let to_add = match root {
         Node::Nil => "[ Nil ]".to_string(),
-        Node::Tree(freq, left, right) => {
+        Node::Tree(_, left, right) => {
             let st = &mut String::from("");
             st.push_str("{ ");
             st.push_str(&print_tree(left));
@@ -62,10 +58,10 @@ fn encode(root: &Node, st: &str, hm: &mut HashMap<char, String>) {
 
     match root {
         Node::Nil => {}
-        Node::Leaf(val, freq) => {
+        Node::Leaf(val, _) => {
             hm.insert(*val, st.to_string());
         }
-        Node::Tree(freq, left, right) => {
+        Node::Tree(_, left, right) => {
             let mut s1 = String::from(st);
             let mut s2 = String::from(st);
             s1.push_str("0");
@@ -82,7 +78,7 @@ fn decode(root: Node, idx: &mut u32, st: &str) {
         Node::Leaf(val, _) => {
             println!("{}", val);
         }
-        Node::Tree(freq, left, right) => {
+        Node::Tree(_, left, right) => {
             let (l, r) = (*left, *right);
             *idx += 1;
             let c = st.chars().nth(*idx as usize).unwrap();
@@ -122,6 +118,13 @@ fn build_huffman_tree(text: &str) {
         };
         pq.push(Node::Tree(v1 + v2, Box::new(fst), Box::new(snd)));
     }
+
+    let root = pq.peek().unwrap();
+    let encode_map = &mut HashMap::new();
+    encode(root, "", encode_map);
+    for (c, code) in encode_map {
+        println!("Huffman code is {}: {}", c, code);
+    }
 }
 
 fn main() {
@@ -135,4 +138,5 @@ fn main() {
     let txt = print_tree(&root);
     println!("{}", txt);
     println!("{:?}", hm);
+    build_huffman_tree("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum");
 }
