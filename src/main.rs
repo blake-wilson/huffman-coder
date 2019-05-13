@@ -73,23 +73,25 @@ fn encode(root: &Node, st: &str, hm: &mut HashMap<char, String>) -> HashMap<char
     hm.clone()
 }
 
-fn decode(root: &Node, idx: &mut i32, st: &str) {
+fn decode(root: &Node, idx: &mut i32, st: &str) -> String {
+    let result = &mut String::from("");
     match root {
         Node::Nil => {}
         Node::Leaf(val, _) => {
-            println!("{}", val);
+            result.push(*val);
         }
         Node::Tree(_, left, right) => {
             let (l, r) = (left, right);
             *idx += 1;
             let c = st.chars().nth(*idx as usize).unwrap();
             if c == '0' {
-                decode(&l, idx, st);
+                result.push_str(&decode(&l, idx, st));
             } else {
-                decode(&r, idx, st);
+                result.push_str(&decode(&r, idx, st));
             }
         }
     };
+    result.to_string()
 }
 
 fn print_encoding_map(map: HashMap<char, String>) {
@@ -139,9 +141,13 @@ fn build_huffman_tree(text: &str) {
     }
 
     let idx: &mut i32 = &mut (-1);
+
+    let decoded = &mut String::from("");
     while *idx < (encoded_string.len() - 2) as i32 {
-        decode(root, idx, encoded_string);
+        let res = &decode(root, idx, encoded_string);
+        decoded.push_str(res);
     }
+    println!("Decoded string: {}", decoded);
 }
 
 fn main() {
