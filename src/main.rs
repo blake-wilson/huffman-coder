@@ -9,7 +9,7 @@ enum Node {
     Leaf(char, u32),
 }
 
-impl<'a> Ord for Node {
+impl Ord for Node {
     fn cmp(&self, other: &Node) -> Ordering {
         match self {
             Node::Leaf(_, f1) => match other {
@@ -26,8 +26,6 @@ impl PartialOrd for Node {
         Some(self.cmp(other))
     }
 }
-
-static NIL: Node = Node::Nil;
 
 fn print_tree(root: &Node) -> String {
     let res = &mut String::from("");
