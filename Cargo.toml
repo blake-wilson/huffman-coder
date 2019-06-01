@@ -1,0 +1,20 @@
+[package]
+name = "huffmancode"
+version = "0.1.0"
+authors = ["Blake Wilson <blake@yellowpapersun.com>"]
+edition = "2018"
+
+[lib]
+name = "huffman"
+path = "src/huffman.rs"
+
+[[test]]
+name = "huffmancode"
+path = "src/test.rs"
+
+[dependencies]
+bencher = "0.1.5"
+
+[[bench]]
+name = "bench_huffman"
+harness = false
