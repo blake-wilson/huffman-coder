@@ -14,7 +14,7 @@ path = "src/test.rs"
 
 [dependencies]
 bencher = "0.1.5"
-bit-vec = "^0.6.1"
+bitvec = "^0.13"
 
 [[bench]]
 name = "bench_huffman"

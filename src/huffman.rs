@@ -1,7 +1,7 @@
+use bitvec::prelude::*;
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
-use bit_vec::BitVec;
 
 #[derive(Clone, Eq, PartialEq)]
 pub enum Node {
@@ -50,7 +50,11 @@ pub fn print_tree(root: &Node) -> String {
     res.to_string()
 }
 
-pub fn encode(root: &Node, st: &str, hm: &mut HashMap<char, BitVec>) -> HashMap<char, BitVec> {
+pub fn encode(
+    root: &Node,
+    encoded: &BitVec,
+    hm: &mut HashMap<char, BitVec>,
+) -> HashMap<char, BitVec> {
     if let Node::Nil = root {
         return HashMap::new();
     }
@@ -58,15 +62,15 @@ pub fn encode(root: &Node, st: &str, hm: &mut HashMap<char, BitVec>) -> HashMap<
     match root {
         Node::Nil => {}
         Node::Leaf(val, _) => {
-            hm.insert(*val, st.to_string());
+            hm.insert(*val, encoded.clone());
         }
         Node::Tree(_, left, right) => {
-            let mut s1 = String::from(st);
-            let mut s2 = String::from(st);
-            s1.push_str("0");
-            s2.push_str("1");
-            encode(left, &s1.to_string(), hm);
-            encode(right, &s2.to_string(), hm);
+            let mut s1 = encoded.clone();
+            let mut s2 = encoded.clone();
+            s1.push(false);
+            s2.push(true);
+            encode(left, &s1, hm);
+            encode(right, &s2, hm);
         }
     };
     hm.clone()
@@ -82,11 +86,12 @@ pub fn decode(root: &Node, idx: &mut i32, encoded: &BitVec) -> String {
         Node::Tree(_, left, right) => {
             let (l, r) = (left, right);
             *idx += 1;
-            let c = encoded[(*idx as usize)]
-            if c == false { // false == 0 bit
-                result.push_str(&decode(&l, idx, st));
+            let c = encoded[(*idx as usize)];
+            if c == false {
+                // false == 0 bit
+                result.push_str(&decode(&l, idx, encoded));
             } else {
-                result.push_str(&decode(&r, idx, st));
+                result.push_str(&decode(&r, idx, encoded));
             }
         }
     };
@@ -102,7 +107,7 @@ fn print_encoding_map(map: HashMap<char, String>) {
 /// build_huffman_tree builds a Huffman tree for the provided text, encodes it,
 /// and returns the encoded text along with the Huffman tree
 /// along with the Huffman tree
-pub fn build_huffman_tree(text: &str) -> (String, Node) {
+pub fn build_huffman_tree(text: &str) -> (BitVec, Node) {
     let hm = &mut HashMap::new();
     for c in text.chars() {
         let count = hm.entry(c).or_insert(0);
@@ -133,23 +138,22 @@ pub fn build_huffman_tree(text: &str) -> (String, Node) {
     let root = pq.peek().unwrap().clone();
 
     let em = &mut HashMap::new();
-    let encode_map = encode(&root, "", em);
+    let encode_map = encode(&root, &BitVec::new(), em);
 
-    let mut encoded_string = String::from("");
     let mut encoded_result = BitVec::new();
 
     for c in text.chars() {
-        encoded_string.push_str(encode_map.get(&c).unwrap());
+        encoded_result.extend(encode_map.get(&c).unwrap());
     }
-    (encoded_string, root)
+    (encoded_result, root)
 }
 
-pub fn decode_huffman_tree(encoded_string: &str, root: &Node) -> (String) {
+pub fn decode_huffman_tree(encoded: &BitVec, root: &Node) -> (String) {
     let idx: &mut i32 = &mut (-1);
 
     let decoded = &mut String::from("");
-    while *idx < (encoded_string.len() - 2) as i32 {
-        let res = &decode(root, idx, encoded_string);
+    while *idx < (encoded.len() - 2) as i32 {
+        let res = &decode(root, idx, encoded);
         decoded.push_str(res);
     }
     decoded.to_string()
