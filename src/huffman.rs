@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
+use bit_vec::BitVec;
 
 #[derive(Clone, Eq, PartialEq)]
 pub enum Node {
@@ -49,7 +50,7 @@ pub fn print_tree(root: &Node) -> String {
     res.to_string()
 }
 
-pub fn encode(root: &Node, st: &str, hm: &mut HashMap<char, String>) -> HashMap<char, String> {
+pub fn encode(root: &Node, st: &str, hm: &mut HashMap<char, BitVec>) -> HashMap<char, BitVec> {
     if let Node::Nil = root {
         return HashMap::new();
     }
@@ -71,7 +72,7 @@ pub fn encode(root: &Node, st: &str, hm: &mut HashMap<char, String>) -> HashMap<
     hm.clone()
 }
 
-pub fn decode(root: &Node, idx: &mut i32, st: &str) -> String {
+pub fn decode(root: &Node, idx: &mut i32, encoded: &BitVec) -> String {
     let result = &mut String::from("");
     match root {
         Node::Nil => {}
@@ -81,8 +82,8 @@ pub fn decode(root: &Node, idx: &mut i32, st: &str) -> String {
         Node::Tree(_, left, right) => {
             let (l, r) = (left, right);
             *idx += 1;
-            let c = st.chars().nth(*idx as usize).unwrap();
-            if c == '0' {
+            let c = encoded[(*idx as usize)]
+            if c == false { // false == 0 bit
                 result.push_str(&decode(&l, idx, st));
             } else {
                 result.push_str(&decode(&r, idx, st));
@@ -135,6 +136,7 @@ pub fn build_huffman_tree(text: &str) -> (String, Node) {
     let encode_map = encode(&root, "", em);
 
     let mut encoded_string = String::from("");
+    let mut encoded_result = BitVec::new();
 
     for c in text.chars() {
         encoded_string.push_str(encode_map.get(&c).unwrap());
