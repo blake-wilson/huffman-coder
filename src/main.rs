@@ -2,6 +2,7 @@ mod huffman;
 use std::collections::HashMap;
 use std::io::{self, Read, BufReader, Write};
 use std::str;
+use std::fs;
 
 const KILOBYTE: i32 = 8 * 1024;
 
@@ -33,9 +34,27 @@ fn main() {
 }
 
 fn build_tree(input: &mut [u8], hm: &mut HashMap<u8, u32>) -> String {
-        let (encoded, root) = huffman::build_huffman_tree(input, hm);
-        println!("encoded string: {}", encoded);
-        
+        // let (encoded, root) = huffman::build_huffman_tree(input, hm);
+        // println!("encoded string: {}", encoded);
+
+        // let serialized = huffman::serialize_tree(&root);
+        // huffman::write_to_file(serialized, "tree.txt");
+
+        // let out_buffer = &mut Vec::new();
+        // huffman::decode_huffman_tree(&encoded, &root, out_buffer);
+        // let result_str = str::from_utf8(&out_buffer);
+        // match result_str {
+        //     Ok(res) => res.to_string(),
+        //     Err(err) => String::from("error"),
+        // }
+        //
+
+        let fileContents = fs::read_to_string("tree.txt").unwrap();
+        let root = huffman::deserialize_tree(fileContents);
+        let encoded = huffman::encode_from_tree(input, &root);
+        let result = huffman::print_tree(&root);
+        println!("result: {}", result);
+
         let out_buffer = &mut Vec::new();
         huffman::decode_huffman_tree(&encoded, &root, out_buffer);
         let result_str = str::from_utf8(&out_buffer);

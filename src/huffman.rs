@@ -2,12 +2,33 @@ use bitvec::prelude::*;
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
+use std::fs::File;
+use std::io;
+use std::error::Error;
+use std::io::prelude::*;
+use std::path::Path;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 #[derive(Clone, Eq, PartialEq)]
 pub enum Node {
     Nil,
     Tree(u32, Box<Node>, Box<Node>),
     Leaf(u8, u32),
+}
+
+type SerializedNodeType = u8;
+
+const SerializedTypeNil: SerializedNodeType = 1;
+const SerializedTypeLeaf: SerializedNodeType = 2;
+const SerializedTypeInternal: SerializedNodeType = 3;
+
+#[derive(Clone)]
+pub struct SerializedNode {
+    // indicates whether the node is a leaf node, an internal node, or Nil
+    nodeType: SerializedNodeType,
+    value: u8,
+    frequency: u32,
 }
 
 impl Ord for Node {
@@ -28,6 +49,94 @@ impl PartialOrd for Node {
     }
 }
 
+pub fn write_to_file(serialized: Vec<SerializedNode>, filepath: &str) -> io::Result<()> {
+    let path = Path::new(filepath); 
+    let display = path.display();
+    let mut file = match File::create(&path) {
+        Err(why) => panic!("couldn't create {}: {}", display, why.description()),
+        Ok(file) => file,
+    };
+    for node in serialized {
+        if let Err(e) = file.write_all(format!("{},{},{},", node.nodeType, node.value,
+                                     node.frequency).as_bytes()) {
+            return Err(e);
+        }
+    }
+    Ok(())
+}
+
+// Serializes the provided tree into text
+pub fn serialize_tree(root: &Node) -> Vec<SerializedNode> {
+    let mut serialized = Vec::new();
+    match root {
+        Node::Nil => {
+            serialized.push(SerializedNode{
+                nodeType: SerializedTypeNil,
+                frequency: 0,
+                value: 0,
+            });
+        }
+        Node::Tree(freq, left, right) => {
+            let st = &mut String::from("");
+            let sn = SerializedNode{
+                nodeType: SerializedTypeInternal,
+                frequency: *freq,
+                value: 0,
+            };
+            serialized.push(sn);
+            serialized.extend(serialize_tree(left));
+            serialized.extend(serialize_tree(right));
+        }
+        Node::Leaf(val, freq) => {
+            let sn = SerializedNode{
+                nodeType: SerializedTypeLeaf,
+                value: *val,
+                frequency: *freq,
+            };
+            serialized.push(sn);
+        }
+    };
+    serialized.to_vec()
+}
+
+pub fn deserialize_tree(repr: String) -> Node {
+    // Split by comma
+    let entries: Vec<&str> = repr.split(",").collect();
+
+    if entries.len() < 3 {
+        return Node::Nil
+    }
+    let idx = Rc::new(RefCell::new(0));
+    readIntoTree(&entries, idx)
+}
+
+pub fn readIntoTree(values: &Vec<&str>, idx: Rc<RefCell<u32>>) -> Node {
+    let nodeType = values[(*idx.borrow()) as usize].parse::<u8>().unwrap() as SerializedNodeType;
+    match nodeType {
+        SerializedTypeInternal => {
+            let value = values[(*idx.borrow() + 1) as usize].parse::<u8>().unwrap();
+            let freq = values[(*idx.borrow() + 2) as usize].parse::<u32>().unwrap();
+            *idx.borrow_mut() += 3;
+            let left = readIntoTree(values, Rc::clone(&idx));
+            let right = readIntoTree(values, Rc::clone(&idx));
+            Node::Tree(freq, Box::new(left), Box::new(right))
+        },
+        SerializedTypeNil => {
+            *idx.borrow_mut() += 3;
+            Node::Nil
+        },
+        SerializedTypeLeaf => {
+            let value = values[(*idx.borrow() + 1) as usize].parse::<u8>().unwrap();
+            let freq = values[(*idx.borrow() + 2) as usize].parse::<u32>().unwrap();
+            *idx.borrow_mut() += 3;
+            Node::Leaf(value, freq)
+        },
+        _ => {
+            // Unrecognized node type
+            Node::Nil
+        }
+    }
+}
 
 pub fn print_tree(root: &Node) -> String {
     let res = &mut String::from("");
@@ -41,7 +150,7 @@ pub fn print_tree(root: &Node) -> String {
             st.push_str(" }");
             st.to_string()
         }
-        Node::Leaf(freq, val) => {
+        Node::Leaf(val, freq) => {
             let st = &mut String::from("");
             st.push_str(&format!("[ val: {}, freq: {}]", val, freq));
             st.to_string()
@@ -141,6 +250,18 @@ pub fn build_huffman_tree(contents: &[u8], hm: &mut HashMap<u8, u32>) -> (BitVec
         encoded_result.extend(encode_map.get(&c).unwrap().iter().copied());
     }
     (encoded_result, root)
+}
+
+pub fn encode_from_tree(contents: &[u8], root: &Node) -> BitVec {
+    let em = &mut HashMap::new();
+    let encode_map = encode(&root, &BitVec::new(), em);
+
+    let mut encoded_result = BitVec::new();
+
+    for c in contents {
+        encoded_result.extend(encode_map.get(&c).unwrap().iter().copied());
+    }
+    encoded_result
 }
 
 pub fn decode_huffman_tree(encoded: &BitVec, root: &Node, buffer: &mut Vec<u8>) {
