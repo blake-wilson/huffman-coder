@@ -28,6 +28,7 @@ impl PartialOrd for Node {
     }
 }
 
+
 pub fn print_tree(root: &Node) -> String {
     let res = &mut String::from("");
     let to_add = match root {
@@ -137,7 +138,7 @@ pub fn build_huffman_tree(contents: &[u8], hm: &mut HashMap<u8, u32>) -> (BitVec
     let mut encoded_result = BitVec::new();
 
     for c in contents {
-        encoded_result.extend(encode_map.get(&c).unwrap());
+        encoded_result.extend(encode_map.get(&c).unwrap().iter().copied());
     }
     (encoded_result, root)
 }

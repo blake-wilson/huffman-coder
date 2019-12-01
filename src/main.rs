@@ -29,6 +29,7 @@ fn main() {
                     buffer.len(), res.len() / 8).as_bytes(),
         );
     }
+    // serialize huffman tree
 }
 
 fn build_tree(input: &mut [u8], hm: &mut HashMap<u8, u32>) -> String {
