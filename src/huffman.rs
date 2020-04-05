@@ -1,14 +1,14 @@
 use bitvec::prelude::*;
+use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
+use std::error::Error;
 use std::fs::File;
 use std::io;
-use std::error::Error;
 use std::io::prelude::*;
 use std::path::Path;
 use std::rc::Rc;
-use std::cell::RefCell;
 
 #[derive(Clone, Eq, PartialEq)]
 pub enum Node {
@@ -50,15 +50,16 @@ impl PartialOrd for Node {
 }
 
 pub fn write_to_file(serialized: Vec<SerializedNode>, filepath: &str) -> io::Result<()> {
-    let path = Path::new(filepath); 
+    let path = Path::new(filepath);
     let display = path.display();
     let mut file = match File::create(&path) {
         Err(why) => panic!("couldn't create {}: {}", display, why.description()),
         Ok(file) => file,
     };
     for node in serialized {
-        if let Err(e) = file.write_all(format!("{},{},{},", node.nodeType, node.value,
-                                     node.frequency).as_bytes()) {
+        if let Err(e) = file
+            .write_all(format!("{},{},{},", node.nodeType, node.value, node.frequency).as_bytes())
+        {
             return Err(e);
         }
     }
@@ -70,7 +71,7 @@ pub fn serialize_tree(root: &Node) -> Vec<SerializedNode> {
     let mut serialized = Vec::new();
     match root {
         Node::Nil => {
-            serialized.push(SerializedNode{
+            serialized.push(SerializedNode {
                 nodeType: SerializedTypeNil,
                 frequency: 0,
                 value: 0,
@@ -78,7 +79,7 @@ pub fn serialize_tree(root: &Node) -> Vec<SerializedNode> {
         }
         Node::Tree(freq, left, right) => {
             let st = &mut String::from("");
-            let sn = SerializedNode{
+            let sn = SerializedNode {
                 nodeType: SerializedTypeInternal,
                 frequency: *freq,
                 value: 0,
@@ -88,7 +89,7 @@ pub fn serialize_tree(root: &Node) -> Vec<SerializedNode> {
             serialized.extend(serialize_tree(right));
         }
         Node::Leaf(val, freq) => {
-            let sn = SerializedNode{
+            let sn = SerializedNode {
                 nodeType: SerializedTypeLeaf,
                 value: *val,
                 frequency: *freq,
@@ -104,7 +105,7 @@ pub fn deserialize_tree(repr: String) -> Node {
     let entries: Vec<&str> = repr.split(",").collect();
 
     if entries.len() < 3 {
-        return Node::Nil
+        return Node::Nil;
     }
     let idx = Rc::new(RefCell::new(0));
     readIntoTree(&entries, idx)
@@ -120,17 +121,17 @@ pub fn readIntoTree(values: &Vec<&str>, idx: Rc<RefCell<u32>>) -> Node {
             let left = readIntoTree(values, Rc::clone(&idx));
             let right = readIntoTree(values, Rc::clone(&idx));
             Node::Tree(freq, Box::new(left), Box::new(right))
-        },
+        }
         SerializedTypeNil => {
             *idx.borrow_mut() += 3;
             Node::Nil
-        },
+        }
         SerializedTypeLeaf => {
             let value = values[(*idx.borrow() + 1) as usize].parse::<u8>().unwrap();
             let freq = values[(*idx.borrow() + 2) as usize].parse::<u32>().unwrap();
             *idx.borrow_mut() += 3;
             Node::Leaf(value, freq)
-        },
+        }
         _ => {
             // Unrecognized node type
             Node::Nil
@@ -160,12 +161,7 @@ pub fn print_tree(root: &Node) -> String {
     res.to_string()
 }
 
-pub fn encode(
-    root: &Node,
-    encoded: &BitVec,
-    hm: &mut HashMap<u8, BitVec>,
-) -> HashMap<u8, BitVec> {
-
+pub fn encode(root: &Node, encoded: &BitVec, hm: &mut HashMap<u8, BitVec>) -> HashMap<u8, BitVec> {
     if let Node::Nil = root {
         return HashMap::new();
     }
